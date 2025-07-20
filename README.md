@@ -133,31 +133,31 @@ terraform apply --var-file="your-vars.tfvars"
 Type yes when prompted
 
 - Architecture Decisions
-    Chose to deploy on EC2 for simplicity in Terraform setup
-    Can be extended to ECS by adding
-        Task definition
-        ECS service
-        ECS cluster
+    - Chose to deploy on EC2 for simplicity in Terraform setup
+    - Can be extended to ECS by adding
+       - Task definition
+       - ECS service
+       - ECS cluster
 
 - Security Considerations
-    Attach AWS WAF to the ALB
-    Use AWS-managed rule sets to protect against:
-        Common web exploits
-        SQL injection
-        Bad bots, etc.
+   - Attach AWS WAF to the ALB
+   - Use AWS-managed rule sets to protect against:
+       - Common web exploits
+       - SQL injection
+       - Bad bots, etc.
 
 - Cost Optimization Measures
-    Use Reserved Instances for:
-        EC2 (App + Bastion)
-        RDS
-    Scale-down unused resources in non-prod environments
+    - Use Reserved Instances for:
+       - EC2 (App + Bastion)
+       - RDS
+    - Scale-down unused resources in non-prod environments
 
 - Secret Management
-    Use AWS Secrets Manager to securely store:
-        RDS database username
-        RDS database password
-    Fetch them securely in your app or Terraform if needed
+    - Use AWS Secrets Manager to securely store:
+       - RDS database username
+       - RDS database password
+    - Fetch them securely in your app or Terraform if needed
     
 - Backup Strategy
-    Enable automated backups for RDS
-    Setup cross-region backup replication as part of a disaster recovery (DR) plan
+   - Enable automated backups for RDS
+   - Setup cross-region backup replication as part of a disaster recovery (DR) plan
