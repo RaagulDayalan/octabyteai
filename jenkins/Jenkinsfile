@@ -1,0 +1,89 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "${env.REGION}" 
+        AWS_ACCOUNT_ID = "${env.AWS_ACCOUNT_ID}"   // ← set this in Jenkins env
+        APP_NAME = "${env.app_name}" 
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        EMAIL_RECIPIENTS = "${env.email_id}" 
+        ECR_REPO_URL = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.REGION}.amazonaws.com/${env.app_name}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install & Test') {
+            steps {
+                sh 'npm ci'
+                sh 'npm test'
+            }
+        }
+
+        stage('Vulnerability Scan') {
+            steps {
+                sh 'npm audit --audit-level=moderate || true'
+            }
+        }
+
+        stage('Build React App') {
+            steps {
+                sh 'npm run build'
+            }
+        }
+
+        stage('Build & Push Docker (Nginx)') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    def image = "${env.ECR_REPO_URL}:${env.IMAGE_TAG}"
+
+                    sh "aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin ${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
+                    sh "docker build -t ${image} ."
+                    sh "docker push ${image}"
+                }
+            }
+        }
+
+        stage('Deploy to Staging') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh './scripts/deploy-staging.sh'
+            }
+        }
+
+        stage('Manual Approval for Prod') {
+            when {
+                branch 'main'
+            }
+            steps {
+                input message: 'Approve production deployment?', ok: 'Deploy'
+            }
+        }
+
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh './scripts/deploy-prod.sh'
+            }
+        }
+    }
+
+    post {
+        failure {
+            mail to: "${EMAIL_RECIPIENTS}",
+                 subject: "Jenkins Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                 body: "Build failed. View logs: ${env.BUILD_URL}"
+        }
+    }
+}
